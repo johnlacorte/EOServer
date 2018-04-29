@@ -13,9 +13,9 @@ class Listener(connectionArray: ConnectionContainer, port: Int) : Runnable{
 
     fun run(){
         while(isRunning){
-            //Don't do this, create a thread to handle logging in and pass in connections
-            //to it. Also, if I kill serverSocket, will it return null or what?
+            //If I kill serverSocket, will it return null or what?
             //I would need to handle that null somehow
+            //Check if there's room for one more
             connections.newConnect(serverSocket.accept())
         }
     }
