@@ -3,8 +3,9 @@
 //It might be helpful for some of the functions that are caused by a command
 //to return a string indicating what happened
 //Logging of events starts here
+//Room list might perform better as a map or vector
 
-class RoomContainer(howManyConnections: Int){
+class RoomList(howManyConnections: Int){
 
     val MAX_CONNECTIONS: Int
     var numberOfRooms: Int
@@ -16,17 +17,11 @@ class RoomContainer(howManyConnections: Int){
         roomList = mutableListOf()
     }
 
-    fun newRoom(name: String = "New Room",
-                description: String = "There is nothing here.",
-                parentExit: MutableList<Exit> = mutableListOf()): Int{
-        //Creates a new room, parentExit is the initial list of Exits, usually
-        //this will contain only an exit back to the room it was created from
-        //but if you wanted to start off with more exits it would be easy.
-        //Return the new rooms id
+    fun newRoom(): Int{
         if(numberOfRooms == 0){
             roomList = mutableListOf()
         }
-        roomList.add(Room(numberOfRooms, name, description, parentExit))
+        roomList.add(Room(numberOfRooms))
         numberOfRooms++
         return numberOfRooms - 1
     }
@@ -63,56 +58,66 @@ class RoomContainer(howManyConnections: Int){
         }
     }
 
-    fun addPuppetToRoom(roomNumber: Int, puppet: Int){
-        //Check puppet number
-        if(isRoomNumberInRange(roomNumber)){
-            roomList[roomNumber].addPuppet(puppet)
-        }
-    }
-
-    fun removePuppetFromRoom(roomNumber: Int, puppet: Int){
-        //Check puppet number
-        if(isRoomNumberInRange(roomNumber)){
-            roomList[roomNumber].removePuppet(puppet)
-        }
-    }
-
     fun changeRoomName(roomNumber: Int, newName: String){
         //Changes the name of a room in RoomContainer
+        //Return value
         if(isRoomNumberInRange(roomNumber)){
-            roomList[roomNumber].changeName(newName)
+            roomList[roomNumber].roomName = newName
         }
     }
 
     fun changeRoomDescription(roomNumber: Int, newDescription: String){
         //Changes the name of a room in RoomContainer
+        //Return value
         if(isRoomNumberInRange(roomNumber)){
-            roomList[roomNumber].changeDescription(newDescription)
+            roomList[roomNumber].roomDescription = newDescription
         }
     }
 
-    fun addExitToRoom(roomNumber: Int, exit: Exit){
+    fun addExitToRoom(roomNumber: Int, exitName: String, exitRoom: Int){
         //Adds exit to room in RoomContainer
+        //Check exitRoom too
+        //Return value
         if(isRoomNumberInRange(roomNumber)){
-            roomList[roomNumber].addExit(exit)
+            roomList[roomNumber].roomExits.addExit(exitName, exitRoom)
         }
     }
 
     fun removeExitFromRoom(roomNumber: Int, exitName: String){
         //Removes exit from room in RoomContainer
+        //Return value
         if(isRoomNumberInRange(roomNumber)){
-            roomList[roomNumber].removeExit(exitName)
+            roomList[roomNumber].roomExits.removeExit(exitName)
+        }
+    }
+
+    fun addPuppetToRoom(roomNumber: Int, puppet: Int){
+        //Check puppet number
+        //Return value
+        if(isRoomNumberInRange(roomNumber)){
+            roomList[roomNumber].roomPuppets.addPuppet(puppet)
+        }
+    }
+
+    fun removePuppetFromRoom(roomNumber: Int, puppet: Int){
+        //Check puppet number
+        //Return value
+        if(isRoomNumberInRange(roomNumber)){
+            roomList[roomNumber].roomPuppets.removePuppet(puppet)
         }
     }
 
     fun puppetsInRoom(roomNumber: Int): List<Int>{
         //Returns a list of what puppets are in a room
+        
+        val retList: List<Int>
         if(isRoomNumberInRange(roomNumber)){
-            return roomList[roomNumber].puppetNumbers()
+            retList = roomList[roomNumber].roomPuppets.puppetNumbers()
         }
         else{
-            return listOf()
+            retList = listOf()
         }
+        return retList
     }
 
     //fun save()
