@@ -1,0 +1,2 @@
+12:43:32.679 (Error) Room number out of range: 
+  puppetsInRoom(0)

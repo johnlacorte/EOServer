@@ -3,32 +3,27 @@
 //it's likely that these default arguments will be removed and most of the
 //time these things will be loaded from files.
 //Any other stats can go in here including things like inventory.
+//"home" location
 
-class Puppet(number: Int, name: String = "DefaultName",
-            description: String = " is here.", location: Int = 0){
+class Puppet(number: Int){
 
+    var puppetAlive: Boolean
     var puppetNumber: Int
     var puppetName: String
     var puppetDescription: String
     var puppetLocation: Int
 
     init{
+        puppetAlive = false
         puppetNumber = number
-        puppetName = name
-        puppetDescription = description
-        puppetLocation = location
-    }
-
-    fun setPuppet(name: String, description: String, location: String){
-        //Set member variables, this may change or be removed in the future
-        puppetName = name
-        puppetDescription = description
-        puppetLocation = location
+        puppetName = "DefaultName"
+        puppetDescription = " is here."
+        puppetLocation = 0
     }
 
     fun look(): String{
         //A quick look at puppet like in "look" used in a room.
-        return puppetName + puppetDescription
+        return puppetName + puppetDescription + "\n"
     }
 
     //save()

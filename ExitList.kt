@@ -34,13 +34,13 @@ class ExitList(){
 
     fun addExit(dir: String, room: Int): Boolean{
         //Maybe arrange these into order
-        var success = true
+        var success = false
 
-        if(findExit(dir) == null){
-            exitList.add(Exit(dir, room))
-        }
-        else{
-            success = false
+        if(dir != ""){
+            if(findExit(dir) == null){
+                exitList.add(Exit(dir, room))
+                success = true
+            }
         }
         return success
     }

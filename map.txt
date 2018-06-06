@@ -1,0 +1,13 @@
+                          Main--Logger
+                          /  \
+                 Commander    Thread(Listener)
+                /         \          |
+  MsgQueue-World           ConnectionContainer
+          /     \                /        \
+    RoomList    PuppetList  Connection     MsgQueue
+       |            |
+     Room        Puppet
+    /    \
+ExitList PuppetsInRoom
+   |
+ Exit

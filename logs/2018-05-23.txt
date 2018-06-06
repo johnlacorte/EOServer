@@ -1,0 +1,2 @@
+12:00:52.721 (Error) Kotlin is cool!
+12:00:52.79 (Info) Hello World!

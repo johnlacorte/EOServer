@@ -52,7 +52,7 @@ class PuppetsInRoom(){
     }
 
     fun look(): String{
-        //List of puppets here as a string.
+        //List of puppets here as a string just to check if it works.
         return puppets.toString() + "\n"
     }
 }
