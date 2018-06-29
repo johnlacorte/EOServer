@@ -1,3 +1,4 @@
+//This class is for creating exit objects
 //Adding doors is simply adding a couple booleans such as isDoor, isOpen, hasLock, isLocked
 
 class Exit(dir: String, room: Int){
@@ -16,7 +17,4 @@ class Exit(dir: String, room: Int){
         //like if is an open or closed door.
         return direction
     }
-
-    //fun save()
-    //fun load()
 }

@@ -1,14 +1,8 @@
 //do I need isPuppetAlive()?
-//I need a function to return a list of live puppet numbers
-//I need a function to find first alive = false puppet or numberOfPuppets
-//log messages for errors are probably ready to go now
-//If I use this same class for NPCs and monsters, I would want it to grow so
-//the idea I might as well just create a bunch of puppets for players at the
-//start means it is not flexable for other uses
-//Add a list of all currently live puppets
+//newPuppet(), newPlayerPuppet(), and clonePuppet() need error messages fixed
+//and might be better to use my getters and setters wherever possible
 
 class PuppetList(logger: Logger){
-
     var numberOfPuppets: Int
     var puppetList: MutableList<Puppet> = mutableListOf()
     var log = logger
@@ -19,6 +13,7 @@ class PuppetList(logger: Logger){
     }
 
     fun isPuppetNumberInRange(number: Int): Boolean{
+        //Since most member functions take a Puppet number
         var retValue = false
 
         if(number >= 0 && number < numberOfPuppets){
@@ -28,10 +23,10 @@ class PuppetList(logger: Logger){
     }
 
     fun nextAvailablePuppetNumber(): Int{
-        //probably don't need this
+        //Puppet numbers for Puppets that are playerPuppet and !puppetAlive are reused before creating new ones
         var retValue = numberOfPuppets
         for(puppet in puppetList){
-            if(puppet.puppetAlive == false){
+            if(puppet.playerPuppet == true && puppet.puppetAlive == false){
                 retValue = puppet.puppetNumber
                 break
             }
@@ -39,9 +34,90 @@ class PuppetList(logger: Logger){
         return retValue
     }
 
-    fun setPuppet(number: Int, name: String, description: String, location: Int): Boolean{{
+    fun newPlayerPuppet(listener: Int, name: String, home: Int): Int{
+        //Recycles old unused puppet or creates new one and returns it's number
+        var number: Int
+
+        number = nextAvailablePuppetNumber()
+        if(number == numberOfPuppets){
+            puppetList.add(Puppet(numberOfPuppets))
+            numberOfPuppets++
+        }
+        if(puppetList[number].puppetAlive == false){
+            puppetList[number].playerPuppet = true
+            puppetList[number].puppetAlive = true
+            puppetList[number].puppetName = name
+            puppetList[number].puppetDescription = " is here."
+            puppetList[number].puppetHome = home
+            puppetList[number].puppetLocation = home
+            puppetList[number].puppetListener = listener
+        }
+        else{
+            log.logError("Tried to setPuppet() for a living puppet: \n  setPuppet(" + number.toString() + ", " + name + ")")
+        }
+        return number
+    }
+
+    //fun loadPlayerPuppet(listener: Int, name: String): Int{
+
+    //}
+
+    //savePlayerPuppet
+
+    //loadPuppetList savePuppetList
+
+    fun newPuppet(name: String, home: Int): Int{
+        //Create a puppet that is not a player
+        var number: Int
+
+        number = nextAvailablePuppetNumber()
+        if(number == numberOfPuppets){
+            puppetList.add(Puppet(numberOfPuppets))
+            numberOfPuppets++
+        }
+        if(puppetList[number].puppetAlive == false){
+            puppetList[number].playerPuppet = false
+            puppetList[number].puppetAlive = true
+            puppetList[number].puppetName = name
+            puppetList[number].puppetDescription = " is here."
+            puppetList[number].puppetHome = home
+            puppetList[number].puppetLocation = home
+            puppetList[number].puppetListener = -1
+        }
+        else{
+            log.logError("Tried to setPuppet() for a living puppet: \n  setPuppet(" + number.toString() + ", " + name + ")")
+        }
+        return number
+    }
+
+    fun clonePuppet(puppetNumber: Int, home: Int): Int{
+        var number: Int
+
+        number = nextAvailablePuppetNumber()
+        if(number == numberOfPuppets){
+            puppetList.add(Puppet(numberOfPuppets))
+            numberOfPuppets++
+        }
+        if(puppetList[number].puppetAlive == false){
+            puppetList[number].playerPuppet = false
+            puppetList[number].puppetAlive = true
+            puppetList[number].puppetName = getPuppetName(puppetNumber)
+            puppetList[number].puppetDescription = " is here."
+            puppetList[number].puppetHome = home
+            puppetList[number].puppetLocation = home
+            puppetList[number].puppetListener = -1
+        }
+        else{
+            log.logError("Tried to setPuppet() for a living puppet: \n  setPuppet(" + number.toString() + ")")
+        }
+        return number
+    }
+
+    fun setPuppet(number: Int, name: String, description: String, location: Int): Boolean{
         //Set member variables, this may change or be removed in the future
+        //Probably remove this because I have better ideas of what I will need now
         var success = false
+
         if(number >= 0 && number <= numberOfPuppets){
             if(number == numberOfPuppets){
                 puppetList.add(Puppet(numberOfPuppets))
@@ -61,29 +137,32 @@ class PuppetList(logger: Logger){
         else{
             log.logError("Puppet number is out of range: \n  setPuppet(" + number.toString() + ", " + name + ")")
         }
+        return success
     }
 
     fun lookAtPuppet(number: Int): String{
-        //log error
+        //Returns short description of a Puppet
+        var retString = "There is a ghost here.\n"
+
         if(isPuppetNumberInRange(number)){
             if(puppetList[number].puppetAlive == true){
-                return puppetList[number].look()
+                retString = puppetList[number].look()
             }
             else{
                 log.logError("Attempting to look at dead puppet: \n  lookAtPuppet(" + number.toString() + ")")
-                return "There is a ghost here.\n"
             }
         }
         else{
             log.logError("Puppet number is out of range: \n  lookAtPuppet(" + number.toString() + ")")
-            return "There is a ghost here.\n"
         }
+        return retString
     }
 
     fun lookAtPuppetList(puppets: List<Int>, exclude: Int = -1): String{
         //Turns a list of player numbers into a string made up of calls to look() for each
         //exclude value suppresses a particular number (usually your number since you don't see yourself)
         var retString = ""
+
         if(numberOfPuppets > 0){
             for(puppet in puppets){
                 if(puppet != exclude){
@@ -97,26 +176,14 @@ class PuppetList(logger: Logger){
         return retString
     }
 
-    fun getLivePuppetList(exclude: Int = -1): List<Int>{
-        //This doesn't seem very efficient
-        var retList: MutableList<Int>
-
-        retList = mutableListOf()
-        for(puppet in puppetList){
-            if(puppet.puppetAlive == true){
-                if(puppet.puppetNumber != exclude){
-                    retList.add(puppet.puppetNumber)
-                }
-            }
-        }
-        return retList.toList()
-    }
-
     fun killPuppet(number: Int): Boolean{
-        //Used when a puppet isn't needed anymore
+        //Used when a puppet isn't needed anymore and number can be reused
         var killed = false
+
         if(isPuppetNumberInRange(number)){
             if(puppetList[number].puppetAlive == true){
+                //flip boolean for playerPuppet to recycle puppetNumber
+                puppetList[number].playerPuppet = true
                 puppetList[number].puppetAlive = false
                 killed = true
             }
@@ -132,19 +199,18 @@ class PuppetList(logger: Logger){
 
     fun getPuppetName(number: Int): String{
         //Returns the name of a puppet given its number or "NameError" if there is an error
-        var retString = ""
+        var retString = "NameError"
+
         if(isPuppetNumberInRange(number)){
             if(puppetList[number].puppetAlive == true){
                 retString = puppetList[number].puppetName
             }
             else{
                 log.logError("Attempted to get the name of a dead puppet: \n  getPuppetName(" + number.toString() + ")")
-                retString = "NameError"
             }
         }
         else{
             log.logError("Puppet number is out of range: \n  getPuppetName(" + number.toString() + ")")
-            retString = "NameError"
         }
         return retString
     }
@@ -152,6 +218,7 @@ class PuppetList(logger: Logger){
     fun changePuppetName(number: Int, newName: String): Boolean{
         //Changes a puppets name given number and new name, returns a boolean for success
         var success = false
+
         if(isPuppetNumberInRange(number)){
             if(puppetList[number].puppetAlive == true){
                 puppetList[number].puppetName = newName
@@ -170,6 +237,7 @@ class PuppetList(logger: Logger){
     fun changePuppetDescription(number: Int, newDesc: String): Boolean{
         //Changes a puppets description given number and new description, returns a boolean for success
         var success = false
+
         if(isPuppetNumberInRange(number)){
             if(puppetList[number].puppetAlive == true){
                 puppetList[number].puppetDescription = newDesc
@@ -186,8 +254,9 @@ class PuppetList(logger: Logger){
     }
 
     fun getPuppetLocation(number: Int): Int{
-        //log error
+        //Returns puppet location
         var retValue = -1
+
         if(isPuppetNumberInRange(number)){
             if(puppetList[number].puppetAlive == true){
                 retValue = puppetList[number].puppetLocation
@@ -203,8 +272,9 @@ class PuppetList(logger: Logger){
     }
 
     fun changePuppetLocation(number: Int, location: Int): Boolean{
-        //log error
+        //Changes puppet location
         var success = false
+
         if(isPuppetNumberInRange(number)){
             if(puppetList[number].puppetAlive == true){
                 puppetList[number].puppetLocation = location
@@ -216,6 +286,43 @@ class PuppetList(logger: Logger){
         }
         else{
             log.logError("Puppet number is out of range: \n  changePuppetLocation(" + number.toString() + ", " + location.toString() + ")")
+        }
+        return success
+    }
+
+    fun getPuppetListener(number: Int): Int{
+        //log error
+        var retValue = -1
+
+        if(isPuppetNumberInRange(number)){
+            if(puppetList[number].puppetAlive == true){
+                retValue = puppetList[number].puppetListener
+            }
+            else{
+                log.logError("Attempted to get the listener of a dead puppet: \n  getPuppetListener(" + number.toString() + ")")
+            }
+        }
+        else{
+            log.logError("Puppet number is out of range: \n  getPuppetListener(" + number.toString() + ")")
+        }
+        return retValue
+    }
+
+    fun changePuppetListener(number: Int, listener: Int): Boolean{
+        //log error
+        var success = false
+
+        if(isPuppetNumberInRange(number)){
+            if(puppetList[number].puppetAlive == true){
+                puppetList[number].puppetListener = listener
+                success = true
+            }
+            else{
+                log.logError("Tried to change the listener of a dead puppet: \n  changePuppetListener(" + number.toString() + ", " + listener.toString() + ")")
+            }
+        }
+        else{
+            log.logError("Puppet number is out of range: \n  changePuppetListener(" + number.toString() + ", " + listener.toString() + ")")
         }
         return success
     }
