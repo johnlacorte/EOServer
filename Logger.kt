@@ -1,6 +1,7 @@
 //Logger, I kinda want an error counter in here that can be checked periodically
 //Possibly need to make it work with threads
 //Need to handle file errors and figure out where to send error messages in that case
+//Check to see if logs directory exists and create if it doesn't
 
 import java.io.File
 import java.time.LocalDateTime

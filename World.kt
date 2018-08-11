@@ -3,7 +3,6 @@
 //This should take an argument to decide to start with an empty world or
 //load files maybe one for whether it is is offline mode
 //Commands: newroom, roomname, roomdescription, chat, newpuppet, clone, puppetname, puppetlistener
-//Maybe create a message for others in the room when a player creates a room or a puppet
 
 class World(howManyConnections: Int, logger: Logger){
     //I need functions for everything you can do
@@ -18,39 +17,34 @@ class World(howManyConnections: Int, logger: Logger){
 
     init{
         MAX_CONNECTIONS = howManyConnections
-        //log = Logger()
         roomList = RoomList(log)
         puppetList = PuppetList(log)
         mudOutput = MsgQueue(log)
     }
 
-    fun msgTo(connectionNumber: Int, message: String): Boolean{
+    fun msgTo(puppetNumber: Int, message: String): Boolean{
         //check against howmanyconnections
         var success = false
+        val connectionNumber = puppetList.getPuppetListener(puppetNumber)
 
-        if(connectionNumber < MAX_CONNECTIONS){
+        if(connectionNumber > -1 && connectionNumber < MAX_CONNECTIONS){
             success = mudOutput.addMsg(connectionNumber, message)
         }
         if(!success){
-            log.logError("Failed to send message:\n  " + Msg(connectionNumber, message).look())
+            log.logError("Failed to send message:\n  " + Msg(puppetNumber, message).look())
         }
         return success
     }
 
     fun msgRoom(room: Int, message: String, exclude: Int = -1): Boolean{
-        //msgAll() and msgAllButOne() should probably take a list of Int to be more useful
 
         var success = true
         val puppets = roomList.puppetsInRoom(room)
-        var connectionNumber: Int
 
         for(puppet in puppets){
             if(puppet != exclude){
-                connectionNumber = puppetList.getPuppetListener(puppet)
-                if(connectionNumber > -1){
-                    if(msgTo(connectionNumber, message) == false){
-                        success = false
-                    }
+                if(msgTo(puppet, message) == false){
+                    success = false
                 }
             }
         }
@@ -70,7 +64,7 @@ class World(howManyConnections: Int, logger: Logger){
         if(location >= 0){
             outputString += roomList.lookAtRoom(location)
             outputString += puppetList.lookAtPuppetList(roomList.puppetsInRoom(location), puppetNumber)
-            success = msgTo(puppetList.getPuppetListener(puppetNumber), outputString)
+            success = msgTo(puppetNumber, outputString)
         }
         if(!success){
             log.logError("Look failed: \n  lookAround(" + puppetNumber.toString() + ")")
@@ -117,7 +111,6 @@ class World(howManyConnections: Int, logger: Logger){
     fun newPuppet(puppetNumber: Int, name: String): Int{
         var newPuppetNumber = -1
         var room: Int
-        var connectionNumber: Int
 
         room = puppetList.getPuppetLocation(puppetNumber)
         connectionNumber = puppetList.getPuppetListener(puppetNumber)
@@ -125,29 +118,25 @@ class World(howManyConnections: Int, logger: Logger){
             newPuppetNumber = puppetList.newPuppet(name, room)
         }
         if(newPuppetNumber == -1){
-            msgTo(connectionNumber, "Creating new puppet failed.")
+            msgTo(puppetNumber, "Creating new puppet failed.")
         }
         else{
             //insert to room and success msg
             roomList.addPuppetToRoom(room, newPuppetNumber)
-            msgTo(connectionNumber, "Created new puppet " + newPuppetNumber.toString() + ".")
+            msgTo(puppetNumber, "Created new puppet " + newPuppetNumber.toString() + ".")
         }
         return newPuppetNumber
     }
 
     fun say(puppetNumber: Int, message: String): Boolean{
         var success = false
-        val connectionNumber: Int
         val location: Int
 
-        connectionNumber = puppetList.getPuppetListener(puppetNumber)
-        if(connectionNumber > -1){
-            location = puppetList.getPuppetLocation(puppetNumber)
-            if(location > -1){
-                msgTo(connectionNumber, "You say '" + message + "'")
-                msgRoom(puppetList.getPuppetLocation(puppetNumber), puppetList.getPuppetName(puppetNumber) + " says '" + message + "'", puppetNumber)
-                success = true
-            }
+        location = puppetList.getPuppetLocation(puppetNumber)
+        if(location > -1){
+            msgTo(puppetNumber, "You say '" + message + "'")
+            msgRoom(puppetList.getPuppetLocation(puppetNumber), puppetList.getPuppetName(puppetNumber) + " says '" + message + "'", puppetNumber)
+            success = true
         }
         if(!success){
             log.logError("Failed to speak:\n  say(" + puppetNumber.toString() + ", " + message +")")
@@ -161,9 +150,7 @@ class World(howManyConnections: Int, logger: Logger){
         var success = false
         var moveFrom: Int
         var moveTo: Int
-        val connectionNumber: Int
 
-        connectionNumber = puppetList.getPuppetListener(puppetNumber)
         moveFrom = puppetList.getPuppetLocation(puppetNumber)
         if(moveFrom >= 0){
             moveTo = roomList.whatRoomExitGoesTo(moveFrom, exitName)
@@ -180,13 +167,13 @@ class World(howManyConnections: Int, logger: Logger){
                 if(!puppetList.changePuppetLocation(puppetNumber, moveTo)){
                     success = false
                 }
-                msgTo(connectionNumber, "You go " + exitName + ".")
+                msgTo(puppetNumber, "You go " + exitName + ".")
                 msgRoom(moveFrom, puppetList.getPuppetName(puppetNumber) + " goes " + exitName + ".")
-                msgRoom(moveTo, puppetList.getPuppetName(puppetNumber) + " arrives.", connectionNumber)
+                msgRoom(moveTo, puppetList.getPuppetName(puppetNumber) + " arrives.", puppetNumber)
                 lookAround(puppetNumber)
             }
             else{
-                msgTo(connectionNumber, "You cannot go that way.")
+                msgTo(puppetNumber, "You cannot go that way.")
             }
         }
         if(!success){
@@ -200,7 +187,6 @@ class World(howManyConnections: Int, logger: Logger){
         var newRoomNumber = -1
         var directionNumber: Int
         val location = puppetList.getPuppetLocation(puppetNumber)
-        val connectionNumber = puppetList.getPuppetListener(puppetNumber)
 
         if(location != -1){
             if(roomList.numberOfRooms == 0){
@@ -222,7 +208,7 @@ class World(howManyConnections: Int, logger: Logger){
                     }
                     else{
                         //need to use a default direction or give a return exit name
-                        msgTo(connectionNumber, "You need to either pick a direction from the default list or supply a return exit name.")
+                        msgTo(puppetNumber, "You need to either pick a direction from the default list or supply a return exit name.")
                     }
                 }
                 else{
@@ -241,7 +227,7 @@ class World(howManyConnections: Int, logger: Logger){
             log.logError("Failed to make room, bad location: \n  makeRoom(" + puppetNumber.toString() + ", " + exitName + ", " + exitBackToThisRoom + ")")
         }
         if(newRoomNumber != -1){
-            msgTo(connectionNumber, "Created Room " + newRoomNumber.toString() + ".")
+            msgTo(puppetNumber, "Created Room " + newRoomNumber.toString() + ".")
         }
         return newRoomNumber
     }
@@ -249,16 +235,14 @@ class World(howManyConnections: Int, logger: Logger){
     fun changeRoomName(puppetNumber: Int, name: String): Boolean{
         var success = false
         var room: Int
-        var connectionNumber: Int
 
         room = puppetList.getPuppetLocation(puppetNumber)
-        connectionNumber = puppetList.getPuppetListener(puppetNumber)
         if(room != -1){
             success = roomList.changeRoomName(room, name)
         }
         if(success){
             //msg of success
-            msgTo(connectionNumber, "Room name changed.")
+            msgTo(puppetNumber, "Room name changed.")
         }
         else{
             //log error
@@ -270,16 +254,14 @@ class World(howManyConnections: Int, logger: Logger){
 fun changeRoomDescription(puppetNumber: Int, desc: String): Boolean{
         var success = false
         var room: Int
-        var connectionNumber: Int
 
         room = puppetList.getPuppetLocation(puppetNumber)
-        connectionNumber = puppetList.getPuppetListener(puppetNumber)
         if(room != -1){
             success = roomList.changeRoomDescription(room, desc)
         }
         if(success){
             //msg of success
-            msgTo(connectionNumber, "Room description changed.")
+            msgTo(puppetNumber, "Room description changed.")
         }
         else{
             //log error
