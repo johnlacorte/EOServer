@@ -6,8 +6,6 @@
 //Commander should have function for broadcasts to make sure they come out of mudOutput queue after anything already in there
 //I think I want a dictionary for usernames and passwords here
 //needs to be ready for multithreading
-//I might want to consider adding the puppetNumber to disconnectedList instead of connectionNumber
-//perhaps adding a function to look it up and add it at the same time
 //dealing with lost connections should be done before new connections to prevent a new connection being killed
 //because its number is on the disconnect list still
 
@@ -30,14 +28,14 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         MAX_CONNECTIONS = howManyConnections
         WELCOME_MESSAGE = welcome
         STRING_BUFFER_SIZE = bufferSize
-        conectionArray = Array(MAX_CONNECTIONS, { i -> Connection(i, STRING_BUFFER_SIZE)})
+        connectionArray = Array(MAX_CONNECTIONS, { i -> Connection(i, STRING_BUFFER_SIZE)})
         mudInput = MsgQueue(log)
         broadcastList = PuppetsInRoom()
         newConnectionList = PuppetsInRoom()
         disconnectedList = PuppetsInRoom()
     }
 
-    fun isConnectionNumberInRange(connectionNumber): Boolean{
+    fun isConnectionNumberInRange(connectionNumber: Int): Boolean{
         //Used in functions below that take a connection number to check if connection number is in the expected range
         var success: Boolean
 
@@ -50,14 +48,14 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun lostConnection(connectionNumber): Boolean{
+    fun lostConnection(connectionNumber: Int): Boolean{
         //This function is called if a client disconnects unexpectedly and when the server breaks
         //the connection after sending a message
         var success = false
-        var puppetNumber = -1
+        var puppetNumber: Int
 
         if(isConnectionNumberInRange(connectionNumber)){
-            if(conectionArray[connectionNumber].clientConnected){
+            if(connectionArray[connectionNumber].clientConnected){
                 //If the connection has a puppet in the MUD, add puppet number to the disconnectedList
                 //and the puppet will be killed when the main loop starts again
                 puppetNumber = connectionArray[connectionNumber].clientPuppetNumber
@@ -84,18 +82,22 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         var connectionNumber = -1
         var outputWriter = OutputStreamWriter(socket.getOutputStream(), "ISO-8859-1")
 
+        print("newConnection()\n")
         for(connection in connectionArray){
             if(!connection.clientConnected){
                 connectionNumber = connection.clientNumber
                 break
             }
         }
+        print("connectionNumber = " + connectionNumber.toString() + "\n")
+        //see if welcome message is sent without checking connectionNumber
         if(connectionNumber != -1){
             try{
                 outputWriter.write(WELCOME_MESSAGE + "\n" + "\nWhat is your name?\n")
+                outputWriter.flush()
                 success = true
             }
-            catch(IOException e){
+            catch(e: IOException){
                 socket.close()
                 //Log this as info and any false return values of the stuff below as errors
                 //Do I need to do something with outputWriter?
@@ -107,13 +109,14 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
                 connectionArray[connectionNumber].clientPuppetNumber = -1
                 connectionArray[connectionNumber].inputString = StringBuffer(STRING_BUFFER_SIZE)
                 //add to new connection list, move this to getInput()
-                newConnectionList.addPuppet(connectionNumber)
+                //newConnectionList.addPuppet(connectionNumber)
                 //log new connect, move this to getInput()
             }
         }
         //maybe log too many connections?
         else{
             outputWriter.write("Server is at maximum number of connections.")
+            outputWriter.flush()
             socket.close()
         }
         return success
@@ -128,13 +131,15 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         var connectionNumber = msg.playerNumber
         var outputWriter: OutputStreamWriter
 
-        if(isConnectionNumberInRange(connectionNumber){
-            outputWriter = OutputStreamWriter(conectionArray[connectionNumber].clientSocket.getOutputStream(), "ISO-8859-1")
+        if(isConnectionNumberInRange(connectionNumber)){
+            outputWriter = OutputStreamWriter(connectionArray[connectionNumber].clientSocket.getOutputStream(), "ISO-8859-1")
             try{
                 outputWriter.write(msg.messageString + "\n")
+                outputWriter.flush()
                 success = true
             }
-            catch(IOException e){
+            //This seems too simple to be right
+            catch(e: IOException){
                 lostConnection(connectionNumber)
                 //Log this as info and any false return values of the stuff below as errors
             }
@@ -145,20 +150,30 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
+    fun sendMudOutput(output: MsgQueue): Boolean{
+        var success = true
+        var message: Msg?
+
+        message = output.getMsg()
+        while(message != null){
+            if(!sendMsg(message)){
+                success = false
+            }
+            message = output.getMsg()
+        }
+        return success
+    }
+
     fun kill(connectionNumber: Int, message: String): Boolean{
-        //I don't know if I should check the return value of sendMsg() because if it fails it
-        //adds the number to disconnectedList to be killed in puppetList and I don't know, maybe
-        //check that the connectionNumber is in range and the status of the connection before
-        //attempting to send message
+
         var success = false
-        var puppetNumber = -1
 
         if(isConnectionNumberInRange(connectionNumber)){
             //I don't know if I need to check this if sendMsg checks it as well
             if(connectionArray[connectionNumber].clientConnected){
-                //sendMsg() will call lostConnection() before returning false
+                //sendMsg() will call lostConnection() if it fails before returning false
                 if( sendMsg( Msg(connectionNumber, message) ) ){
-                    lostConnection(connectNumber)
+                    lostConnection(connectionNumber)
                 }
             }
             //else maybe log an error, tried to kill disconnected connection, maybe just during
@@ -171,12 +186,27 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
+    fun killAll(message: String){
+        //Do I want to close the socket if !clientConnected anyway?
+        var connectionNumber: Int
+
+        for(connection in connectionArray){
+            connectionNumber = connection.clientNumber
+            if(connection.clientConnected){
+                //sendMsg() will call lostConnection() if it fails before returning false
+                if( sendMsg( Msg(connectionNumber, message) ) ){
+                    lostConnection(connectionNumber)
+                }
+            }
+        }
+    }
+
     fun getInput(){
         //I might want to actually read stuff into buffer with another function
         //Do I want to return a value if theres input?
         //Do I need to check is socket is open?
         //If it all works add another branch for getting player name and password
-        var connectionNumber = -1
+        var connectionNumber: Int
         var readInt: Int
         var readChar: Char
         var outputWriter: OutputStreamWriter
@@ -201,18 +231,25 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
                         //check for too many characters in buffer or newline
                         readChar = readInt.toChar()
                         if(readChar == '\n'){
-                            //if(connection.clientPuppetNumber == -1){
+                            if(connection.clientPuppetNumber == -1){
                                 //login stuff. change name and add to whatever new connection are stored in
-                            //    connection.clientName = connection.inputString.toString()
-                            //}
-                            //else{
+                                connection.clientName = connection.inputString.toString()
+                                print("Name = " + connection.clientName.toString() + "\n")
+                                if(!newConnectionList.addPuppet(connectionNumber)){
+                                    log.logError("Failed to add to newConnectionList: \n  getInput()")
+                                }
+                            }
+                            else{
                                 //add msg to msgqueue
                                 mudInput.addMsg(connection.clientPuppetNumber, connection.inputString.toString())
-                            //}
+                            }
                             connection.inputString = StringBuffer(STRING_BUFFER_SIZE)
                         }
                         else{
-                            connection.inputString.append(readChar)
+                            //hopefully this will ignore any unexpected control characters
+                            if(readInt > 31){
+                                connection.inputString.append(readChar)
+                            }
                             if(connection.inputString.length == STRING_BUFFER_SIZE){
                                 //break connection if line is too long
                                 connection.clientConnected = false
@@ -230,6 +267,9 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
     }
 
     fun setPuppetNumber(connectionNumber: Int, puppetNumber: Int): Boolean{
+        //This is meant to assign a new puppet number to a newly connected client
+        //If changing the puppet number for another reason keep in mind the old puppet number
+        //will be left in the broadcast list
         var success = false
 
         if(isConnectionNumberInRange(connectionNumber)){
@@ -239,11 +279,17 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
                 //but it could be  want to know for sure in case it is.
                 connectionArray[connectionNumber].clientPuppetNumber = puppetNumber
                 //check if addPuppet returns false and log an error
-                success = broadcastList.addPuppet(connectNumber)
-
+                if(!broadcastList.addPuppet(connectionNumber)){
+                    log.logError("Failed to add to broadcastList: \n  setPuppetNumber(" + connectionNumber.toString() + ", " + puppetNumber.toString() + ")")
+                }
+            }
+            else{
+                log.logError("Connection clientConnected is false: \n  setPuppetNumber(" + connectionNumber.toString() + ", " + puppetNumber.toString() + ")")
             }
         }
-        //else{connectNumber out of range}
+        else{
+            log.logError("Connection number out of range: \n  setPuppetNumber(" + connectionNumber.toString() + ", " + puppetNumber.toString() + ")")
+        }
         return success
     }
 
@@ -254,14 +300,17 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         if(isConnectionNumberInRange(connectionNumber)){
             retString = connectionArray[connectionNumber].clientName
         }
+        else{
+            log.logError("Connection number out of range: \n  getName(" + connectionNumber.toString() + ")")
+        }
         return retString
     }
 
-    fun getConnectionList() List<Int>{
+    fun getConnectionList(): List<Int>{
         return broadcastList.puppetNumbers()
     }
 
-    fun getNewConnectionList() List<Int>{
+    fun getNewConnectionList(): List<Int>{
         return newConnectionList.puppetNumbers()
     }
 
@@ -269,7 +318,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         newConnectionList = PuppetsInRoom()
     }
 
-    fun getDisconnectedList() List<Int>{
+    fun getDisconnectedList(): List<Int>{
         return disconnectedList.puppetNumbers()
     }
 
