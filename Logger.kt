@@ -12,14 +12,14 @@ class Logger(){
     var timeString = ""
     var errorCount = 0
 
-    fun setDateAndTimeStrings(){
+    @Synchronized fun setDateAndTimeStrings(){
         var dateTime = LocalDateTime.now()
 
         dateString = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE)
         timeString = dateTime.format(DateTimeFormatter.ISO_LOCAL_TIME)
     }
 
-    fun logError(message: String){
+    @Synchronized fun logError(message: String){
         //Writes message to log file beginning the line with "(Error)"
         //Also increments errorCount
         var logFile: File
@@ -33,7 +33,7 @@ class Logger(){
         logFile.appendText(timeString + " (Error) " + message + "\n")
     }
 
-    fun logInfo(message: String){
+    @Synchronized fun logInfo(message: String){
         var logFile: File
 
         setDateAndTimeStrings()

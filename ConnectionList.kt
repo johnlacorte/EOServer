@@ -8,7 +8,7 @@
 //needs to be ready for multithreading
 //dealing with lost connections should be done before new connections to prevent a new connection being killed
 //because its number is on the disconnect list still
-
+//Log info for connection stuff and maybe find something else to log for an error
 import java.net.*
 import java.io.*
 
@@ -35,7 +35,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         disconnectedList = PuppetsInRoom()
     }
 
-    fun isConnectionNumberInRange(connectionNumber: Int): Boolean{
+    @Synchronized fun isConnectionNumberInRange(connectionNumber: Int): Boolean{
         //Used in functions below that take a connection number to check if connection number is in the expected range
         var success: Boolean
 
@@ -48,7 +48,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun lostConnection(connectionNumber: Int): Boolean{
+    @Synchronized fun lostConnection(connectionNumber: Int): Boolean{
         //This function is called if a client disconnects unexpectedly and when the server breaks
         //the connection after sending a message
         var success = false
@@ -75,9 +75,10 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun newConnection(socket: Socket): Boolean{
+    @Synchronized fun newConnection(socket: Socket): Boolean{
         //return success boolean
         //send welcome and login message
+        //log info message about new connect
         var success = false
         var connectionNumber = -1
         var outputWriter = OutputStreamWriter(socket.getOutputStream(), "ISO-8859-1")
@@ -89,7 +90,6 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
                 break
             }
         }
-        print("connectionNumber = " + connectionNumber.toString() + "\n")
         //see if welcome message is sent without checking connectionNumber
         if(connectionNumber != -1){
             try{
@@ -122,7 +122,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun sendMsg(msg: Msg): Boolean{
+    @Synchronized fun sendMsg(msg: Msg): Boolean{
         //word wrap here maybe
         //may need a flush()
         //maybe kill connection from in here
@@ -150,7 +150,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun sendMudOutput(output: MsgQueue): Boolean{
+    @Synchronized fun sendMudOutput(output: MsgQueue): Boolean{
         var success = true
         var message: Msg?
 
@@ -164,7 +164,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun kill(connectionNumber: Int, message: String): Boolean{
+    @Synchronized fun kill(connectionNumber: Int, message: String): Boolean{
 
         var success = false
 
@@ -186,7 +186,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun killAll(message: String){
+    @Synchronized fun killAll(message: String){
         //Do I want to close the socket if !clientConnected anyway?
         var connectionNumber: Int
 
@@ -201,7 +201,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         }
     }
 
-    fun getInput(){
+    @Synchronized fun getInput(){
         //I might want to actually read stuff into buffer with another function
         //Do I want to return a value if theres input?
         //Do I need to check is socket is open?
@@ -234,6 +234,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
                             if(connection.clientPuppetNumber == -1){
                                 //login stuff. change name and add to whatever new connection are stored in
                                 connection.clientName = connection.inputString.toString()
+                                //log to info instead of printing please
                                 print("Name = " + connection.clientName.toString() + "\n")
                                 if(!newConnectionList.addPuppet(connectionNumber)){
                                     log.logError("Failed to add to newConnectionList: \n  getInput()")
@@ -266,7 +267,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         }
     }
 
-    fun setPuppetNumber(connectionNumber: Int, puppetNumber: Int): Boolean{
+    @Synchronized fun setPuppetNumber(connectionNumber: Int, puppetNumber: Int): Boolean{
         //This is meant to assign a new puppet number to a newly connected client
         //If changing the puppet number for another reason keep in mind the old puppet number
         //will be left in the broadcast list
@@ -293,7 +294,7 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return success
     }
 
-    fun getName(connectionNumber: Int): String{
+    @Synchronized fun getName(connectionNumber: Int): String{
         //check if still connected
         var retString = ""
 
@@ -306,23 +307,23 @@ class ConnectionList(howManyConnections: Int, welcome: String, bufferSize: Int, 
         return retString
     }
 
-    fun getConnectionList(): List<Int>{
+    @Synchronized fun getBroadcastList(): List<Int>{
         return broadcastList.puppetNumbers()
     }
 
-    fun getNewConnectionList(): List<Int>{
+    @Synchronized fun getNewConnectionList(): List<Int>{
         return newConnectionList.puppetNumbers()
     }
 
-    fun clearNewConnectionList(){
+    @Synchronized fun clearNewConnectionList(){
         newConnectionList = PuppetsInRoom()
     }
 
-    fun getDisconnectedList(): List<Int>{
+    @Synchronized fun getDisconnectedList(): List<Int>{
         return disconnectedList.puppetNumbers()
     }
 
-    fun clearDisconnetedList(){
+    @Synchronized fun clearDisconnetedList(){
         disconnectedList = PuppetsInRoom()
     }
 }

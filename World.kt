@@ -2,7 +2,8 @@
 //This class will change as the vision and features change
 //This should take an argument to decide to start with an empty world or
 //load files maybe one for whether it is is offline mode
-//Commands: newroom, roomname, roomdescription, chat, newpuppet, clone, puppetname, puppetlistener
+//Commands: newroom, roomname, roomdescription, chat, newpuppet, clone, puppetname, puppetlistener, say, look, quit
+//Need to add checks for empty strings and negative numbers cause thats what the command functions are going to get
 
 class World(howManyConnections: Int, logger: Logger){
     //I need functions for everything you can do
@@ -54,7 +55,7 @@ class World(howManyConnections: Int, logger: Logger){
         return success
     }
 
-    fun lookAround(puppetNumber: Int): Boolean{
+    fun lookAround(puppetNumber: Int, leftover: String = ""): Boolean{
         var success = false
         var outputString = ""
         var location: Int
@@ -90,19 +91,23 @@ class World(howManyConnections: Int, logger: Logger){
     }
 
     fun removePlayer(puppetNumber: Int): Boolean{
-        //should I check room and name values?
-        var success: Boolean
+        //comments here
+        var success = false
         var room: Int
         var name: String
 
-        room = puppetList.getPuppetLocation(puppetNumber)
-        name = puppetList.getPuppetName(puppetNumber)
-        success = puppetList.killPuppet(puppetNumber)
-        if(success){
-            success = roomList.removePuppetFromRoom(room, puppetNumber)
-            msgRoom(room, name + " turns to dust.")
+        if(puppetList.isPuppetNumberInRange(puppetNumber)){
+            //getPuppetLocation returns -1 if puppetNumber is out of range or puppet is dead
+            room = puppetList.getPuppetLocation(puppetNumber)
+            if(room != -1){
+                name = puppetList.getPuppetName(puppetNumber)
+                if(puppetList.killPuppet(puppetNumber)){
+                    success = roomList.removePuppetFromRoom(room, puppetNumber)
+                    msgRoom(room, name + " turns to dust.")
+                }
+            }
         }
-        else{
+        if(!success){
             log.logError("Failed to remove player: \n  removePlayer(" + puppetNumber.toString() + ")")
         }
         return success
@@ -111,8 +116,10 @@ class World(howManyConnections: Int, logger: Logger){
     fun newPuppet(puppetNumber: Int, name: String): Int{
         var newPuppetNumber = -1
         var room: Int
+        var connectionNumber: Int
 
         room = puppetList.getPuppetLocation(puppetNumber)
+        //not really sure why this is here and what I planned to do with connection number
         connectionNumber = puppetList.getPuppetListener(puppetNumber)
         if(room != -1){
             newPuppetNumber = puppetList.newPuppet(name, room)
@@ -144,7 +151,7 @@ class World(howManyConnections: Int, logger: Logger){
         return success
     }
 
-    fun move(puppetNumber: Int, exitName: String): Boolean{
+    fun move(puppetNumber: Int, exitName: String, leftover: String = ""): Boolean{
         //Create leaving and arriving messages and no exit messages
         //Double check to make sure a wrong exitName isn't going to trigger error message
         var success = false
@@ -182,7 +189,7 @@ class World(howManyConnections: Int, logger: Logger){
         return success
     }
 
-    fun makeRoom(puppetNumber: Int, exitName: String = "", exitBackToThisRoom: String = ""): Int{
+    fun makeRoom(puppetNumber: Int, exitName: String = "", exitBackToThisRoom: String = "", leftovers: String = ""): Int{
         //Check if creating rooms is allowed
         var newRoomNumber = -1
         var directionNumber: Int
@@ -251,7 +258,7 @@ class World(howManyConnections: Int, logger: Logger){
         return success
     }
 
-fun changeRoomDescription(puppetNumber: Int, desc: String): Boolean{
+    fun changeRoomDescription(puppetNumber: Int, desc: String): Boolean{
         var success = false
         var room: Int
 
@@ -270,5 +277,4 @@ fun changeRoomDescription(puppetNumber: Int, desc: String): Boolean{
         return success
     }
 
-    //} String.split(' ')
 }
