@@ -1,13 +1,24 @@
-//Constructor is meant to be called with just the puppetNumber then when
-//you want to use a puppet that has already been created, use setPuppet().
-//it's likely that these default arguments will be removed and most of the
-//time these things will be loaded from files.
-//Any other stats can go in here including things like inventory.
-
-class Puppet(number: Int){
+/**
+ * This holds all the data for a Puppet, which is used to add living type things to the MUD
+ *
+ * The constructor creates a Puppet with mostly default values because their would need to be at
+ * least three different constructors for different situations. New player, new notaplayer, player
+ * loaded from file, and notplayer loaded from file and they likely would change a lot as I add
+ * some early features. So for now I'm just creating this one puppet and changing the couple values
+ * for the things I need.
+ *
+ * @param puppetNumber The number of this puppet, not used for anything other than to have a unique value.
+ * @property playerPuppet Is the puppet a player? Default:false
+ * @property puppetAlive Is the puppet alive? Default:false
+ * @property puppetName Default name is "Default Name"
+ * @property puppetDescription Describes what activity the puppet is engaged in. Default is " is here."
+ * @property puppetHome The number of the room to begin in when created or if they died and suddenly they aren't dead anymore.
+ * @property puppetLocation Number of the room they currently are in. Default:0
+ * @property puppetListener If this is a player, this will be set to their connection number, otherwise -1.
+ */
+class Puppet(val puppetNumber: Int){
     var playerPuppet: Boolean
     var puppetAlive: Boolean
-    var puppetNumber: Int
     var puppetName: String
     var puppetDescription: String
     var puppetHome: Int
@@ -17,7 +28,6 @@ class Puppet(number: Int){
     init{
         playerPuppet = false
         puppetAlive = false
-        puppetNumber = number
         puppetName = "DefaultName"
         puppetDescription = " is here."
         puppetHome = 0
@@ -25,11 +35,12 @@ class Puppet(number: Int){
         puppetListener = -1
     }
 
+    /**
+     * Quick look at Puppet.
+     *
+     * @returns A string, something like "Puppet is here.\n" if it's name is Puppet.
+     */
     fun look(): String{
-        //A quick look at puppet like in "look" used in a room.
         return puppetName + puppetDescription + "\n"
     }
-
-    //save()
-    //load()
 }

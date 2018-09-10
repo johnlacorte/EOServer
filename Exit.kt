@@ -1,20 +1,25 @@
-//This class is for creating exit objects
-//Adding doors is simply adding a couple booleans such as isDoor, isOpen, hasLock, isLocked
+/**
+ * An Exit is used to look up the room number going a certain direction will bring you to.
+ *
+ * An exit is used to connect rooms in the MUD. I plan on adding a door feature in the future
+ * and I wrote it as a new class instead of using some other standard data structure to be able
+ * to add on without modifying the rest of the program other than writing a couple of new functions.
+ *
+ * @param exitName This is the name of the exit.
+ * @param roomNumber This is the number of the room that this exit points to.
+ * @constructor Creates a new Exit and sets the name and room number.
+ */
+class Exit(val exitName: String, val roomNumber: Int){
 
-class Exit(dir: String, room: Int){
-
-    val direction: String
-    val roomNumber: Int
-
-    init{
-        direction = dir
-        roomNumber = room
-    }
-
+    /**
+     * Currently this only returns the name of this exit.
+     *
+     * Returns a string representation of this exit. This is used rather than just getting the
+     * direction property so "(closed)" or "(locked)" can be added in the future without breaking
+     * anything or changing any existing code.
+     * @returns A string representation of this exit.
+     */
     fun look(): String{
-        //This function is only for displaying the direction in an exit list
-        //that way I can keep it seperate in case I add more details in this view
-        //like if is an open or closed door.
-        return direction
+        return exitName
     }
 }
